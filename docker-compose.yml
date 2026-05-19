@@ -1,0 +1,95 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: edagent-postgres
+    environment:
+      POSTGRES_DB: rh_ai_memory
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rh_ai_memory"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: edagent-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edagent-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_NAME: RH AI memory and EdAgent
+      NODE_ENV: production
+      API_PORT: 4000
+      PORT: 3000
+      WORKER_PORT: 4100
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/rh_ai_memory?schema=public
+      REDIS_URL: redis://redis:6379
+      ADMIN_EMAIL: admin@edagent.local
+      ADMIN_PASSWORD: changeme
+      RUN_DB_SEED: "true"
+    command: ["/usr/local/bin/api-entrypoint.sh"]
+    ports:
+      - "4000:4000"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edagent-web
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      API_BASE_URL: http://api:4000
+    command: ["node", "apps/web/dist/index.js"]
+    ports:
+      - "3000:3000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edagent-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      WORKER_PORT: 4100
+      WORKER_POLL_MS: 2000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/rh_ai_memory?schema=public
+      REDIS_URL: redis://redis:6379
+    command: ["node", "apps/worker/dist/index.js"]
+    ports:
+      - "4100:4100"
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,14 @@
+{
+  "name": "@edagent/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@edagent/config": "0.1.0",
+    "@edagent/domain": "0.1.0",
+    "@edagent/integrations": "0.1.0",
+    "@edagent/shared": "0.1.0"
+  }
+}

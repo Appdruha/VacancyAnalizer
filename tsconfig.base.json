@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@edagent/ai": ["packages/ai/src/index.ts"],
+      "@edagent/config": ["packages/config/src/index.ts"],
+      "@edagent/database": ["packages/database/src/index.ts"],
+      "@edagent/domain": ["packages/domain/src/index.ts"],
+      "@edagent/integrations": ["packages/integrations/src/index.ts"],
+      "@edagent/scoring": ["packages/scoring/src/index.ts"],
+      "@edagent/shared": ["packages/shared/src/index.ts"]
+    },
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "declaration": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}

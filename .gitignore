@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.next/
+.turbo/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+package-lock.json
+__pycache__/
+.pytest_cache/
+.venv/
+

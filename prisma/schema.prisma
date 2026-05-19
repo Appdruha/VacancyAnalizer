@@ -1,0 +1,348 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  operator
+  manager
+}
+
+enum CompanyStage {
+  discovered
+  shortlisted
+  approved
+  contacted
+  replied
+  partnered
+}
+
+enum CompanySize {
+  startup
+  smb
+  mid_market
+  enterprise
+}
+
+enum JobStatus {
+  queued
+  running
+  completed
+  failed
+}
+
+enum OutreachChannel {
+  email
+  linkedin
+}
+
+enum CampaignStatus {
+  draft
+  approved
+  sent
+}
+
+enum ReplyCategory {
+  interest
+  decline
+  question
+  meeting
+}
+
+enum AgreementStatus {
+  draft
+  aligned
+  signed
+}
+
+enum MessageTone {
+  formal
+  neutral
+  friendly
+}
+
+enum SourceKind {
+  hh
+  linkedin
+}
+
+enum SourceStatus {
+  active
+  disabled
+}
+
+enum IngestionRunStatus {
+  queued
+  running
+  completed
+  failed
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  fullName      String
+  role          UserRole
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  auditLogs     AuditLog[]
+  approvedItems Industry[]
+}
+
+model Industry {
+  id               String    @id @default(cuid())
+  name             String    @unique
+  priority         Int
+  approvedByUserId String?
+  approvedBy       User?     @relation(fields: [approvedByUserId], references: [id])
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  vacancies        Vacancy[]
+  companies        Company[]
+  sources          IndustrySource[]
+  ingestionRuns    IngestionRun[]
+}
+
+model Competency {
+  id                  String              @id @default(cuid())
+  name                String              @unique
+  category            String
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  programMappings     ProgramCompetency[]
+  vacancyMappings     VacancyCompetency[]
+  briefMappings       ProjectCompetency[]
+}
+
+model ProgramCompetency {
+  id            String     @id @default(cuid())
+  programName   String
+  coverageScore Int
+  competencyId  String
+  competency    Competency @relation(fields: [competencyId], references: [id])
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model Vacancy {
+  id             String              @id @default(cuid())
+  externalId     String?
+  source         String
+  title          String
+  companyName    String
+  areaName       String?
+  employmentName String?
+  experienceName String?
+  scheduleName   String?
+  url            String?
+  alternateUrl   String?
+  requirement    String?
+  responsibility String?
+  description    String?
+  salaryFrom     Int?
+  salaryTo       Int?
+  salaryCurrency String?
+  publishedAt    DateTime?
+  collectedAt    DateTime
+  industryId     String
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  industry       Industry            @relation(fields: [industryId], references: [id])
+  competencies VacancyCompetency[]
+  @@unique([source, externalId])
+}
+
+model VacancyCompetency {
+  vacancyId    String
+  competencyId String
+  vacancy      Vacancy    @relation(fields: [vacancyId], references: [id])
+  competency   Competency @relation(fields: [competencyId], references: [id])
+
+  @@id([vacancyId, competencyId])
+}
+
+model Company {
+  id          String              @id @default(cuid())
+  name        String
+  industryId  String
+  region      String
+  size        CompanySize
+  stage       CompanyStage
+  website     String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  industry    Industry            @relation(fields: [industryId], references: [id])
+  contacts    CompanyContact[]
+  scores      CompanyScore[]
+  drafts      MessageDraft[]
+  replies     Reply[]
+  agreements  PartnerAgreement[]
+  memoryEvents AgentMemoryEvent[]
+}
+
+model CompanyContact {
+  id          String   @id @default(cuid())
+  companyId   String
+  fullName    String
+  title       String
+  email       String?
+  linkedinUrl String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  company     Company  @relation(fields: [companyId], references: [id])
+  drafts      MessageDraft[]
+}
+
+model CompanyScore {
+  id                 String   @id @default(cuid())
+  companyId          String
+  total              Int
+  competencyFit      Int
+  reputation         Int
+  educationReadiness Int
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  company            Company  @relation(fields: [companyId], references: [id])
+}
+
+model OutreachCampaign {
+  id        String          @id @default(cuid())
+  name      String
+  channel   OutreachChannel
+  status    CampaignStatus
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model MessageDraft {
+  id         String        @id @default(cuid())
+  companyId  String
+  contactId  String
+  subject    String
+  body       String
+  tone       MessageTone
+  approved   Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  company    Company       @relation(fields: [companyId], references: [id])
+  contact    CompanyContact @relation(fields: [contactId], references: [id])
+}
+
+model Reply {
+  id        String        @id @default(cuid())
+  companyId String
+  category  ReplyCategory
+  summary   String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  company   Company       @relation(fields: [companyId], references: [id])
+}
+
+model PartnerAgreement {
+  id        String          @id @default(cuid())
+  companyId String
+  status    AgreementStatus
+  signedAt  DateTime?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  company   Company         @relation(fields: [companyId], references: [id])
+  briefs    ProjectBrief[]
+}
+
+model ProjectBrief {
+  id                 String              @id @default(cuid())
+  partnerAgreementId String
+  title              String
+  summary            String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  partnerAgreement   PartnerAgreement    @relation(fields: [partnerAgreementId], references: [id])
+  competencies       ProjectCompetency[]
+}
+
+model ProjectCompetency {
+  projectBriefId String
+  competencyId   String
+  projectBrief   ProjectBrief @relation(fields: [projectBriefId], references: [id])
+  competency     Competency   @relation(fields: [competencyId], references: [id])
+
+  @@id([projectBriefId, competencyId])
+}
+
+model AgentMemoryEvent {
+  id        String   @id @default(cuid())
+  companyId String?
+  eventType String
+  payload   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company   Company? @relation(fields: [companyId], references: [id])
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String
+  action      String
+  entityType  String
+  entityId    String
+  createdAt   DateTime @default(now())
+  actor       User     @relation(fields: [actorUserId], references: [id])
+}
+
+model BackgroundJob {
+  id          String   @id @default(cuid())
+  queue       String
+  type        String
+  status      JobStatus
+  attempts    Int      @default(0)
+  maxAttempts Int
+  payload     Json
+  lastError   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model IndustrySource {
+  id          String       @id @default(cuid())
+  industryId  String
+  source      SourceKind
+  status      SourceStatus
+  config      Json
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  industry    Industry     @relation(fields: [industryId], references: [id])
+  ingestionRuns IngestionRun[]
+
+  @@unique([industryId, source])
+}
+
+model IngestionRun {
+  id               String             @id @default(cuid())
+  industryId       String
+  sourceId         String
+  status           IngestionRunStatus
+  query            String
+  page             Int?
+  perPage          Int?
+  totalFound       Int?
+  processedCount   Int                @default(0)
+  competencyCount  Int                @default(0)
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  errorMessage     String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  industry         Industry           @relation(fields: [industryId], references: [id])
+  sourceRef        IndustrySource     @relation(fields: [sourceId], references: [id])
+}

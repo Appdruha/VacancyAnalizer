@@ -1,0 +1,36 @@
+{
+  "name": "rh-ai-memory-edagent",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false",
+    "clean": "tsc -b --clean",
+    "dev:api": "tsx watch apps/api/src/index.ts",
+    "dev:web": "tsx watch apps/web/src/index.ts",
+    "dev:worker": "tsx watch apps/worker/src/index.ts",
+    "start:api": "node apps/api/dist/index.js",
+    "start:web": "node apps/web/dist/index.js",
+    "start:worker": "node apps/worker/dist/index.js",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
+    "db:deploy": "prisma migrate deploy",
+    "db:push": "prisma db push",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down -v"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "prisma": "^6.8.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

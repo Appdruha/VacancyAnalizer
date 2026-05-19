@@ -1,0 +1,51 @@
+import { PrismaClient } from "@prisma/client";
+import type { AuditLog, BackgroundJob, Company, CompanyContact, CompanyScore, Competency, Industry, PlatformSnapshot, ProgramCompetency, SystemSetting, User, Vacancy } from "@edagent/domain";
+declare global {
+    var __edagentPrisma: PrismaClient | undefined;
+}
+declare function getIndustries(): Promise<Industry[]>;
+declare function getCompetencies(): Promise<Competency[]>;
+declare function getProgramCompetencies(): Promise<ProgramCompetency[]>;
+declare function getVacancies(): Promise<Vacancy[]>;
+declare function getUsers(): Promise<User[]>;
+declare function findUserByEmail(email: string): Promise<User | null>;
+declare function getSettings(): Promise<SystemSetting[]>;
+declare function upsertSetting(key: string, value: string): Promise<SystemSetting>;
+declare function getAuditLogs(): Promise<AuditLog[]>;
+declare function createAuditLog(entry: Omit<AuditLog, "id" | "createdAt">): Promise<AuditLog>;
+declare function getJobs(): Promise<BackgroundJob[]>;
+declare function createJob(input: Omit<BackgroundJob, "id" | "createdAt" | "updatedAt">): Promise<BackgroundJob>;
+declare function claimNextJob(): Promise<BackgroundJob | null>;
+declare function completeJob(jobId: string): Promise<BackgroundJob | null>;
+declare function failJob(jobId: string, errorMessage: string): Promise<BackgroundJob | null>;
+declare function getJobStats(): Promise<Record<BackgroundJob["status"], number>>;
+type CompanyWithRelations = Company & {
+    contacts: CompanyContact[];
+    score: CompanyScore | null;
+};
+declare function getCompanies(): Promise<CompanyWithRelations[]>;
+declare function getSnapshot(): Promise<Pick<PlatformSnapshot, "industries" | "competencies" | "programCompetencies" | "vacancies" | "companies" | "contacts" | "scores" | "users" | "settings" | "auditLogs" | "jobs">>;
+export declare function canReachDatabase(): Promise<boolean>;
+export declare function disconnectDatabase(): Promise<void>;
+export declare const database: {
+    canReachDatabase: typeof canReachDatabase;
+    getIndustries: typeof getIndustries;
+    getCompetencies: typeof getCompetencies;
+    getProgramCompetencies: typeof getProgramCompetencies;
+    getVacancies: typeof getVacancies;
+    getUsers: typeof getUsers;
+    findUserByEmail: typeof findUserByEmail;
+    getSettings: typeof getSettings;
+    upsertSetting: typeof upsertSetting;
+    getAuditLogs: typeof getAuditLogs;
+    createAuditLog: typeof createAuditLog;
+    getJobs: typeof getJobs;
+    getJobStats: typeof getJobStats;
+    createJob: typeof createJob;
+    claimNextJob: typeof claimNextJob;
+    completeJob: typeof completeJob;
+    failJob: typeof failJob;
+    getCompanies: typeof getCompanies;
+    getSnapshot: typeof getSnapshot;
+};
+export {};
