@@ -6,9 +6,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
+    "@edagent/ai": "0.1.0",
     "@edagent/config": "0.1.0",
     "@edagent/domain": "0.1.0",
     "@edagent/integrations": "0.1.0",
+    "@edagent/scoring": "0.1.0",
     "@edagent/shared": "0.1.0"
   }
 }

@@ -47,6 +47,29 @@ enum CampaignStatus {
   sent
 }
 
+enum MessageStatus {
+  queued
+  sent
+  delivered
+  replied
+  failed
+}
+
+enum MessageKind {
+  outreach_email
+  follow_up_email
+}
+
+enum MessageEventType {
+  queued
+  sent
+  delivered
+  replied
+  failed
+  follow_up_scheduled
+  escalated
+}
+
 enum ReplyCategory {
   interest
   decline
@@ -180,6 +203,7 @@ model Company {
   contacts    CompanyContact[]
   scores      CompanyScore[]
   drafts      MessageDraft[]
+  messages    Message[]
   replies     Reply[]
   agreements  PartnerAgreement[]
   memoryEvents AgentMemoryEvent[]
@@ -196,6 +220,7 @@ model CompanyContact {
   updatedAt   DateTime @updatedAt
   company     Company  @relation(fields: [companyId], references: [id])
   drafts      MessageDraft[]
+  messages    Message[]
 }
 
 model CompanyScore {
@@ -217,6 +242,7 @@ model OutreachCampaign {
   status    CampaignStatus
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
+  messages  Message[]
 }
 
 model MessageDraft {
@@ -229,18 +255,65 @@ model MessageDraft {
   approved   Boolean       @default(false)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
-  company    Company       @relation(fields: [companyId], references: [id])
+  company    Company        @relation(fields: [companyId], references: [id])
   contact    CompanyContact @relation(fields: [contactId], references: [id])
+  messages   Message[]
+}
+
+model Message {
+  id                String            @id @default(cuid())
+  companyId         String
+  contactId         String
+  draftId           String?
+  campaignId        String?
+  parentMessageId   String?
+  channel           OutreachChannel
+  kind              MessageKind
+  provider          String
+  providerMessageId String?
+  status            MessageStatus
+  subject           String
+  body              String
+  lastError         String?
+  followUpDueAt     DateTime?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  repliedAt         DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  company           Company           @relation(fields: [companyId], references: [id])
+  contact           CompanyContact    @relation(fields: [contactId], references: [id])
+  draft             MessageDraft?     @relation(fields: [draftId], references: [id])
+  campaign          OutreachCampaign? @relation(fields: [campaignId], references: [id])
+  parentMessage     Message?          @relation("MessageFollowUps", fields: [parentMessageId], references: [id])
+  followUps         Message[]         @relation("MessageFollowUps")
+  events            MessageEvent[]
+  reply             Reply?
+}
+
+model MessageEvent {
+  id        String           @id @default(cuid())
+  messageId String
+  type      MessageEventType
+  payload   Json
+  createdAt DateTime         @default(now())
+  message   Message          @relation(fields: [messageId], references: [id])
 }
 
 model Reply {
   id        String        @id @default(cuid())
+  messageId String?       @unique
   companyId String
   category  ReplyCategory
   summary   String
+  incomingFrom String?
+  rawBody   String?
+  positive  Boolean       @default(false)
+  escalated Boolean       @default(false)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   company   Company       @relation(fields: [companyId], references: [id])
+  message   Message?      @relation(fields: [messageId], references: [id])
 }
 
 model PartnerAgreement {
@@ -259,6 +332,7 @@ model ProjectBrief {
   partnerAgreementId String
   title              String
   summary            String
+  roles              Json
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   partnerAgreement   PartnerAgreement    @relation(fields: [partnerAgreementId], references: [id])

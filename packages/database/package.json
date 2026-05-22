@@ -6,8 +6,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
+    "@edagent/ai": "0.1.0",
     "@edagent/domain": "0.1.0",
     "@prisma/client": "^6.8.2"
   }
 }
-

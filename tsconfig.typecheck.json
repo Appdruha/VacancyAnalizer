@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "sourceMap": false,
+    "composite": false
+  },
+  "include": [
+    "apps/**/*.ts",
+    "packages/**/*.ts",
+    "prisma/seed.ts"
+  ]
+}

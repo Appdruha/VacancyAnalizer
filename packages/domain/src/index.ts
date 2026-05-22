@@ -18,6 +18,16 @@ export type JobStatus = "queued" | "running" | "completed" | "failed";
 export type IngestionRunStatus = "queued" | "running" | "completed" | "failed";
 
 export type ReplyCategory = "interest" | "decline" | "question" | "meeting";
+export type MessageStatus = "queued" | "sent" | "delivered" | "replied" | "failed";
+export type MessageKind = "outreach-email" | "follow-up-email";
+export type MessageEventType =
+  | "queued"
+  | "sent"
+  | "delivered"
+  | "replied"
+  | "failed"
+  | "follow-up-scheduled"
+  | "escalated";
 
 export type OutreachChannel = "email" | "linkedin";
 export type SourceKind = "hh" | "linkedin";
@@ -125,6 +135,8 @@ export type OutreachCampaign = {
   name: string;
   channel: OutreachChannel;
   status: "draft" | "approved" | "sent";
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
 };
 
 export type MessageDraft = {
@@ -135,14 +147,53 @@ export type MessageDraft = {
   body: string;
   tone: "formal" | "neutral" | "friendly";
   approved: boolean;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+};
+
+export type Message = {
+  id: EntityId;
+  companyId: EntityId;
+  contactId: EntityId;
+  draftId?: EntityId;
+  campaignId?: EntityId;
+  parentMessageId?: EntityId;
+  channel: OutreachChannel;
+  kind: MessageKind;
+  provider: string;
+  providerMessageId?: string;
+  status: MessageStatus;
+  subject: string;
+  body: string;
+  lastError?: string;
+  followUpDueAt?: ISODateTime;
+  sentAt?: ISODateTime;
+  deliveredAt?: ISODateTime;
+  repliedAt?: ISODateTime;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+};
+
+export type MessageEvent = {
+  id: EntityId;
+  messageId: EntityId;
+  type: MessageEventType;
+  payload: Record<string, string | number | boolean | null>;
+  createdAt: ISODateTime;
 };
 
 export type Reply = {
   id: EntityId;
+  messageId?: EntityId;
   companyId: EntityId;
   category: ReplyCategory;
   summary: string;
+  incomingFrom?: string;
+  rawBody?: string;
+  positive: boolean;
+  escalated: boolean;
   createdAt: ISODateTime;
+  updatedAt: ISODateTime;
 };
 
 export type PartnerAgreement = {
@@ -150,6 +201,13 @@ export type PartnerAgreement = {
   companyId: EntityId;
   status: "draft" | "aligned" | "signed";
   signedAt?: ISODateTime;
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
+};
+
+export type ProjectRole = {
+  title: string;
+  summary: string;
 };
 
 export type ProjectBrief = {
@@ -157,7 +215,10 @@ export type ProjectBrief = {
   partnerAgreementId: EntityId;
   title: string;
   summary: string;
+  roles: ProjectRole[];
   competencyIds: EntityId[];
+  createdAt: ISODateTime;
+  updatedAt: ISODateTime;
 };
 
 export type AgentMemoryEvent = {
@@ -166,6 +227,43 @@ export type AgentMemoryEvent = {
   eventType: string;
   payload: Record<string, string | number | boolean | null>;
   createdAt: ISODateTime;
+};
+
+export type AdaptiveRecommendation = {
+  scope: "company" | "global";
+  recommendedTone: "formal" | "neutral" | "friendly";
+  recommendedFollowUpDays: number;
+  confidence: number;
+  basedOnEvents: number;
+  totalReplies: number;
+  positiveReplyRate: number;
+  meetingRate: number;
+  reasons: string[];
+};
+
+export type AdaptiveRecommendationStats = {
+  eventCount: number;
+  totalReplies: number;
+  positiveReplies: number;
+  meetingReplies: number;
+  declineReplies: number;
+  questionReplies: number;
+  outreachSent: number;
+  followUpsSent: number;
+  positiveByTone: Partial<Record<"formal" | "neutral" | "friendly", number>>;
+  negativeByTone: Partial<Record<"formal" | "neutral" | "friendly", number>>;
+};
+
+export type MemoryOverview = {
+  companyId?: EntityId;
+  eventCount: number;
+  replyCount: number;
+  recentEvents: AgentMemoryEvent[];
+  topEventTypes: Array<{
+    eventType: string;
+    count: number;
+  }>;
+  recommendation: AdaptiveRecommendation;
 };
 
 export type User = {
@@ -215,6 +313,8 @@ export type PlatformSnapshot = {
   scores: CompanyScore[];
   campaigns: OutreachCampaign[];
   drafts: MessageDraft[];
+  messages: Message[];
+  messageEvents: MessageEvent[];
   replies: Reply[];
   agreements: PartnerAgreement[];
   briefs: ProjectBrief[];
@@ -351,7 +451,14 @@ export const demoSnapshot: PlatformSnapshot = {
     }
   ],
   campaigns: [
-    { id: "cam-1", name: "Pilot EdTech Outreach", channel: "email", status: "draft" }
+    {
+      id: "cam-1",
+      name: "Pilot EdTech Outreach",
+      channel: "email",
+      status: "draft",
+      createdAt: now,
+      updatedAt: now
+    }
   ],
   drafts: [
     {
@@ -361,9 +468,13 @@ export const demoSnapshot: PlatformSnapshot = {
       subject: "Partnership proposal with Project Learning",
       body: "We would like to discuss a project-based partnership format.",
       tone: "formal",
-      approved: false
+      approved: false,
+      createdAt: now,
+      updatedAt: now
     }
   ],
+  messages: [],
+  messageEvents: [],
   replies: [],
   agreements: [],
   briefs: [],

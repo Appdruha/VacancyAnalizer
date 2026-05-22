@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
+  await prisma.messageEvent.deleteMany();
   await prisma.backgroundJob.deleteMany();
   await prisma.ingestionRun.deleteMany();
   await prisma.industrySource.deleteMany();
@@ -13,6 +14,7 @@ async function main(): Promise<void> {
   await prisma.projectBrief.deleteMany();
   await prisma.partnerAgreement.deleteMany();
   await prisma.reply.deleteMany();
+  await prisma.message.deleteMany();
   await prisma.messageDraft.deleteMany();
   await prisma.outreachCampaign.deleteMany();
   await prisma.companyScore.deleteMany();
@@ -187,7 +189,7 @@ async function main(): Promise<void> {
     ]
   });
 
-  await prisma.outreachCampaign.create({
+  const campaign = await prisma.outreachCampaign.create({
     data: {
       name: "Pilot EdTech Outreach",
       channel: "email",
@@ -195,7 +197,7 @@ async function main(): Promise<void> {
     }
   });
 
-  await prisma.messageDraft.create({
+  const draft = await prisma.messageDraft.create({
     data: {
       companyId: company1.id,
       contactId: contact.id,
@@ -206,12 +208,107 @@ async function main(): Promise<void> {
     }
   });
 
-  await prisma.agentMemoryEvent.create({
+  const sentMessage = await prisma.message.create({
     data: {
       companyId: company1.id,
-      eventType: "company_shortlisted",
-      payload: { score: 84 }
+      contactId: contact.id,
+      draftId: draft.id,
+      campaignId: campaign.id,
+      channel: "email",
+      kind: "outreach_email",
+      provider: "simulated-email",
+      providerMessageId: "seed-message-1",
+      status: "delivered",
+      subject: draft.subject,
+      body: draft.body,
+      followUpDueAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+      sentAt: new Date(),
+      deliveredAt: new Date()
     }
+  });
+
+  await prisma.messageEvent.createMany({
+    data: [
+      {
+        messageId: sentMessage.id,
+        type: "queued",
+        payload: { campaignId: campaign.id }
+      },
+      {
+        messageId: sentMessage.id,
+        type: "sent",
+        payload: { provider: "simulated-email" }
+      },
+      {
+        messageId: sentMessage.id,
+        type: "delivered",
+        payload: { deliveredAt: new Date().toISOString() }
+      }
+    ]
+  });
+
+  const agreement = await prisma.partnerAgreement.create({
+    data: {
+      companyId: company1.id,
+      status: "aligned"
+    }
+  });
+
+  const brief = await prisma.projectBrief.create({
+    data: {
+      partnerAgreementId: agreement.id,
+      title: "SkillMatrix Industry Project in TypeScript",
+      summary:
+        "Students build a scoped EdTech product module for SkillMatrix with a focus on TypeScript delivery, analytics instrumentation and a partner review checkpoint.",
+      roles: [
+        {
+          title: "Fullstack Engineer",
+          summary: "Own the product implementation slice and integrate the core workflow."
+        },
+        {
+          title: "Data Analyst",
+          summary: "Define the success metrics and validate the output through funnel analytics."
+        }
+      ]
+    }
+  });
+
+  await prisma.projectCompetency.createMany({
+    data: [
+      { projectBriefId: brief.id, competencyId: ts.id },
+      { projectBriefId: brief.id, competencyId: da.id }
+    ],
+    skipDuplicates: true
+  });
+
+  await prisma.agentMemoryEvent.createMany({
+    data: [
+      {
+        companyId: company1.id,
+        eventType: "company_shortlisted",
+        payload: { score: 84 }
+      },
+      {
+        companyId: company1.id,
+        eventType: "outreach_delivered",
+        payload: {
+          messageId: sentMessage.id,
+          draftId: draft.id,
+          tone: draft.tone,
+          followUpDays: 10
+        }
+      },
+      {
+        companyId: company1.id,
+        eventType: "project_brief_generated",
+        payload: {
+          briefId: brief.id,
+          agreementId: agreement.id,
+          competencyCount: 2,
+          roleCount: 2
+        }
+      }
+    ]
   });
 
   await prisma.systemSetting.createMany({

@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -29,6 +29,14 @@ services:
       timeout: 3s
       retries: 20
 
+  ml:
+    build:
+      context: .
+      dockerfile: services/ml/Dockerfile
+    container_name: edagent-ml
+    ports:
+      - "8000:8000"
+
   api:
     build:
       context: .
@@ -39,6 +47,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      ml:
+        condition: service_started
     environment:
       APP_NAME: RH AI memory and EdAgent
       NODE_ENV: production
@@ -50,6 +60,10 @@ services:
       ADMIN_EMAIL: admin@edagent.local
       ADMIN_PASSWORD: changeme
       RUN_DB_SEED: "true"
+      HH_USE_FIXTURES: "true"
+      ML_SERVICE_URL: http://ml:8000
+      ML_REQUEST_TIMEOUT_MS: 5000
+      ML_USE_REMOTE_RECOMMENDER: "true"
     command: ["/usr/local/bin/api-entrypoint.sh"]
     ports:
       - "4000:4000"
@@ -80,12 +94,18 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      ml:
+        condition: service_started
     environment:
       NODE_ENV: production
       WORKER_PORT: 4100
       WORKER_POLL_MS: 2000
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/rh_ai_memory?schema=public
       REDIS_URL: redis://redis:6379
+      HH_USE_FIXTURES: "true"
+      ML_SERVICE_URL: http://ml:8000
+      ML_REQUEST_TIMEOUT_MS: 5000
+      ML_USE_REMOTE_RECOMMENDER: "true"
     command: ["node", "apps/worker/dist/index.js"]
     ports:
       - "4100:4100"
