@@ -8,7 +8,7 @@
 - `apps/worker` - background jobs, HH ingestion, runtime health
 - `apps/web` - admin dashboard с live-метриками Phase 1 и Phase 2
 - `packages/database` - Prisma client и слой доступа к данным
-- `packages/domain` - доменные типы и demo snapshot
+- `packages/domain` - доменные типы
 - `packages/integrations` - adapters для внешних источников
 - `packages/scoring` - utilities для scoring
 - `packages/ai` - prompt layer и AI helpers
@@ -28,7 +28,9 @@
 - `Phase 6` completed: partner agreements, generated project briefs, competency links, project catalog
 - `Phase 7` completed: memory event log, retrieval API, adaptive recommendations for tone and follow-up cadence
 - `Phase 8` completed: separate Python recommendation service, remote ML evaluation pipeline, runtime fallback from ML to TS
+- baseline RAG is now available: knowledge documents, chunking, local embeddings, similarity retrieval and top-k grounding for draft and brief generation
 - `LinkedIn` intentionally left as placeholder and returns `501 not_implemented`
+- default demo mode uses simulated outreach delivery, so the full browser flow works without configuring an external mail provider
 
 ## Commands
 
@@ -77,10 +79,19 @@ npm run docker:down
 - Postgres: `localhost:5433`
 - Redis: `localhost:6379`
 
-## Demo credentials
+## Demo mode
 
-- email: `admin@edagent.local`
-- password: `changeme`
+- the recommended presentation mode is `EMAIL_PROVIDER=simulated`
+- this keeps the outreach channel fully controllable inside the platform without external provider setup
+- for defense and demo runs the system still shows the full operator flow:
+  draft generation -> approval -> campaign send -> message events -> reply handling -> agreement -> brief -> catalog -> memory/ML update
+- live email delivery is optional architecture, not a required part of the demo scope
+
+## Auth config
+
+- local admin login requires `ADMIN_PASSWORD`
+- signed bearer sessions require `AUTH_TOKEN_SECRET`
+- Google auth additionally requires `GOOGLE_AUTH_ENABLED=true` and `GOOGLE_CLIENT_ID`
 
 ## Phase 2 notes
 
@@ -89,18 +100,22 @@ npm run docker:down
 - основной источник второй фазы: `HH`
 - ingestion запускается через `POST /vacancies/ingest/hh`
 - вакансии сохраняются в `vacancies`
-- компетенции извлекаются rule-based словарём и связываются через `vacancyCompetency`
+- компетенции извлекаются через rule-based normalization layer с canonical names, aliases и category mapping
 - матрица разрыва доступна через `GET /analytics/competency-gap`
+- `POST /analytics/competency-extraction/preview` позволяет быстро проверить extraction quality без полного ingestion
 - для live-режима добавлены timeout, retry, exponential backoff и request throttling
 - worker пишет structured logs по HH-запросам и ingestion runs
 
-### Fixture mode for local Docker
+### HH runtime modes
 
-В `docker-compose` включён `HH_USE_FIXTURES=true`, чтобы локальный стек поднимался и тестировался стабильно даже если live HH API отвечает `403` или ограничивает трафик.
+- `HH_MODE=live` принудительно ходит в live `HH` API и честно падает при ошибках upstream
+- `HH_MODE=auto` сначала пробует live `HH`, а потом прозрачно уходит в fixtures с structured logs
+
+В `docker-compose` теперь выставлен `HH_MODE=auto`, чтобы стек сначала пробовал live `HH`, а при upstream-проблемах деградировал прозрачно.
 
 Если нужен именно live HH режим:
 
-1. выставь `HH_USE_FIXTURES=false`
+1. выставь `HH_MODE=live` или `HH_MODE=auto`
 2. задай валидный `HH_USER_AGENT`
 3. при необходимости подстрой:
    - `HH_TIMEOUT_MS`
@@ -109,10 +124,15 @@ npm run docker:down
    - `HH_MIN_REQUEST_INTERVAL_MS`
 4. перезапусти стек
 
+### HH diagnostics
+
+- `GET /integrations/hh/diagnostics` возвращает текущую HH-конфигурацию, source records и последние ingestion runs
+- `GET /integrations/hh/diagnostics?probe=1` делает маленький probe-запрос и показывает, реально использовался `live` или `fixtures`
+
 ### HH production-readiness checklist
 
 - `HH_USER_AGENT` должен быть осмысленным и стабильным
-- `HH_USE_FIXTURES=false` для боевого контура
+- `HH_MODE=live` или `HH_MODE=auto` для боевого контура
 - `ingestionRuns.errorMessage` должен сохранять понятный код ошибки, например `forbidden`, `rate_limited`, `timeout`
 - при временных сбоях `HH` worker должен повторять запрос с backoff
 - запросы к `HH` не должны идти слишком часто подряд
@@ -145,7 +165,14 @@ npm run docker:down
 - `GET /replies` returns classified replies
 - `POST /follow-ups/run` triggers the follow-up scheduler
 - positive replies move into escalation workflow and create memory events
-- `EMAIL_PROVIDER=simulated` gives a deterministic local provider for dev/test
+- follow-up messages now use the same live email delivery pipeline as primary outreach; they are no longer auto-marked as delivered
+- `EMAIL_PROVIDER=simulated` is the recommended demo mode and accepts outreach inside the platform without external delivery
+- `EMAIL_PROVIDER=disabled` turns outreach delivery off completely
+- `EMAIL_PROVIDER=mailgun` is optional and enables live delivery through `MAILGUN_API_KEY` and `MAILGUN_DOMAIN`
+- `GET /integrations/email/diagnostics` shows whether the configured provider is ready
+- `POST /replies/:id/outcome` lets an operator log the negotiation result after a reply or a call
+- `POST /communication-packages/generate` creates and stores a `one-pager` plus `FAQ` package for a company
+- `GET /communication-packages` returns saved communication packages, optionally filtered by `companyId`, `partnerAgreementId`, or `kind`
 - Docker Postgres now uses `localhost:5433` to avoid conflicts with local PostgreSQL on `5432`
 
 ## Phase 6 notes
@@ -166,14 +193,41 @@ npm run docker:down
 - `POST /drafts/generate` now uses adaptive memory recommendations when `tone` is not passed explicitly
 - worker uses adaptive memory to adjust `followUpDueAt` per company instead of only a global static setting
 
+## RAG notes
+
+- the platform now maintains a company-scoped knowledge base in `KnowledgeDocument` and `KnowledgeChunk`
+- source material for RAG is built from:
+  - company profile
+  - HH vacancies
+  - communication packages
+  - project briefs
+  - replies
+  - memory events
+- each source document is chunked, embedded with a local deterministic embedding function and stored in the DB
+- `draft` and `project brief` generation now retrieve `top-k` relevant chunks before generation
+- manual RAG endpoints:
+  - `POST /rag/reindex`
+  - `GET /rag/search?companyId=...&query=...&topK=5`
+  - `POST /rag/search`
+
 ## Phase 8 notes
 
 - `services/ml` is now a separate `FastAPI` service exposed on `http://localhost:8000`
 - `GET /ml/health` checks the Python recommendation service through the API
-- `POST /ml/evaluations/run` evaluates the remote Python heuristic against the current TS baseline
+- `POST /ml/evaluations/run` now returns a richer evaluation dataset with company samples, benchmark scenarios, `local vs remote` diffs and a recommendation-source policy summary
 - `ML_USE_REMOTE_RECOMMENDER=true` makes `api` and `worker` use the Python recommendation engine first
 - if the Python service is unavailable, the platform falls back to the local `TS` recommendation logic
 - `docker compose` now starts `api`, `worker`, `web`, `postgres`, `redis`, and `ml` together
+- Google auth can be enabled with `GOOGLE_AUTH_ENABLED=true`, `GOOGLE_CLIENT_ID`, and optional `GOOGLE_ALLOWED_DOMAIN`
+- `POST /auth/google` verifies a Google `id_token`, upserts the user and returns a signed bearer token
+- `GET /auth/me` resolves the current user from `Authorization: Bearer <token>`
+- `GET /auth/google/test-page` provides a minimal manual Google sign-in page for local verification
+- business API routes are now auth-gated; `health` and `auth/*` remain public
+- `web` is now a protected dashboard shell that signs in first and then loads data with the bearer token
+- RBAC is active:
+  - `admin` has full access
+  - `manager` can run the business flow but cannot change system settings or source config
+  - `operator` has read access plus safe preparation actions like draft/material generation, but cannot approve or send campaigns
 
 ## Useful API checks
 
@@ -190,6 +244,8 @@ curl http://localhost:4000/campaigns
 curl http://localhost:4000/messages
 curl http://localhost:4000/message-events
 curl http://localhost:4000/replies
+curl http://localhost:4000/communication-packages
+curl "http://localhost:4000/rag/search?companyId=<company-id>&query=partner+competencies&topK=5"
 ```
 
 Trigger HH ingestion:

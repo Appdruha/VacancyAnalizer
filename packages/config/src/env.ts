@@ -1,0 +1,38 @@
+import { readBoolean, readNumber } from "./readers.js";
+import { readEmailProvider, readHhMode } from "./parsers.js";
+
+export const env = {
+  APP_NAME: process.env.APP_NAME ?? "RH AI memory and EdAgent",
+  NODE_ENV: process.env.NODE_ENV ?? "development",
+  PORT: readNumber("PORT", 3000),
+  API_PORT: readNumber("API_PORT", 4000),
+  WORKER_PORT: readNumber("WORKER_PORT", 4100),
+  WORKER_POLL_MS: readNumber("WORKER_POLL_MS", 2000),
+  API_BASE_URL: process.env.API_BASE_URL ?? "http://localhost:4000",
+  HH_API_BASE_URL: process.env.HH_API_BASE_URL ?? "https://api.hh.ru",
+  HH_USER_AGENT: process.env.HH_USER_AGENT ?? "edagent/0.1 (local development)",
+  HH_MODE: readHhMode(),
+  HH_TIMEOUT_MS: readNumber("HH_TIMEOUT_MS", 10000),
+  HH_MAX_RETRIES: readNumber("HH_MAX_RETRIES", 2),
+  HH_RETRY_BASE_MS: readNumber("HH_RETRY_BASE_MS", 800),
+  HH_MIN_REQUEST_INTERVAL_MS: readNumber("HH_MIN_REQUEST_INTERVAL_MS", 1000),
+  ML_SERVICE_URL: process.env.ML_SERVICE_URL ?? "http://localhost:8000",
+  ML_REQUEST_TIMEOUT_MS: readNumber("ML_REQUEST_TIMEOUT_MS", 5000),
+  ML_USE_REMOTE_RECOMMENDER: readBoolean("ML_USE_REMOTE_RECOMMENDER", false),
+  DATABASE_URL: process.env.DATABASE_URL ?? "",
+  REDIS_URL: process.env.REDIS_URL ?? "",
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL ?? "admin@edagent.local",
+  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD ?? "",
+  AUTH_TOKEN_SECRET: process.env.AUTH_TOKEN_SECRET ?? "",
+  AUTH_TOKEN_TTL_HOURS: readNumber("AUTH_TOKEN_TTL_HOURS", 24),
+  GOOGLE_AUTH_ENABLED: readBoolean("GOOGLE_AUTH_ENABLED", false),
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? "",
+  GOOGLE_ALLOWED_DOMAIN: process.env.GOOGLE_ALLOWED_DOMAIN ?? "",
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
+  MAILGUN_API_KEY: process.env.MAILGUN_API_KEY ?? "",
+  MAILGUN_API_BASE_URL: process.env.MAILGUN_API_BASE_URL ?? "https://api.mailgun.net/v3",
+  MAILGUN_DOMAIN: process.env.MAILGUN_DOMAIN ?? "",
+  EMAIL_PROVIDER_TIMEOUT_MS: readNumber("EMAIL_PROVIDER_TIMEOUT_MS", 10000),
+  EMAIL_PROVIDER: readEmailProvider(),
+  EMAIL_FROM: process.env.EMAIL_FROM ?? "partnerships@edagent.local"
+} as const;

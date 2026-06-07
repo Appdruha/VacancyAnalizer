@@ -8,6 +8,12 @@
   "dependencies": {
     "@edagent/config": "0.1.0",
     "@edagent/domain": "0.1.0",
-    "@edagent/shared": "0.1.0"
+    "@edagent/shared": "0.1.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2"
   }
 }

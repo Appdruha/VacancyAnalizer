@@ -14,6 +14,23 @@ export type CompanyDiscoverySignals = {
   region: string;
 };
 
+export type DiscoveryScoreBreakdown = {
+  total: number;
+  competencyFit: number;
+  reputation: number;
+  educationReadiness: number;
+  signals: {
+    vacancyCount: number;
+    matchedProgramCompetencies: number;
+    totalCompanyCompetencies: number;
+    contactCount: number;
+    hasWebsite: boolean;
+    region: string;
+    size: Company["size"];
+  };
+  reasons: string[];
+};
+
 export function calculateCompanyScore(input: ScoreInput): CompanyScore {
   const total = Math.round(
     input.competencyFit * 0.5 +
@@ -42,6 +59,21 @@ function sizeReputationBoost(size: Company["size"]): number {
     case "enterprise":
       return 30;
   }
+}
+
+function hasEducationSignal(input: string): boolean {
+  const hint = input.toLowerCase();
+  return (
+    hint.includes("edu") ||
+    hint.includes("edtech") ||
+    hint.includes("education") ||
+    hint.includes("learning") ||
+    hint.includes("school") ||
+    hint.includes("campus") ||
+    hint.includes("academy") ||
+    hint.includes("training") ||
+    hint.includes("university")
+  );
 }
 
 export function estimateCompanySize(vacancyCount: number): Company["size"] {
@@ -79,16 +111,11 @@ export function calculateDiscoveryScore(signals: CompanyDiscoverySignals): Compa
       (signals.hasWebsite ? 10 : 0)
   );
 
-  const educationHint = `${signals.companyName} ${signals.industryName} ${signals.region}`.toLowerCase();
-  const educationMultiplier =
-    educationHint.includes("edu") ||
-    educationHint.includes("learning") ||
-    educationHint.includes("school") ||
-    educationHint.includes("campus") ||
-    educationHint.includes("academy") ||
-    educationHint.includes("university")
-      ? 1
-      : 0;
+  const educationMultiplier = hasEducationSignal(
+    `${signals.companyName} ${signals.industryName} ${signals.region}`
+  )
+    ? 1
+    : 0;
 
   const educationReadiness = clampScore(
     58 +
@@ -103,4 +130,54 @@ export function calculateDiscoveryScore(signals: CompanyDiscoverySignals): Compa
     reputation,
     educationReadiness
   });
+}
+
+export function explainDiscoveryScore(signals: CompanyDiscoverySignals): DiscoveryScoreBreakdown {
+  const score = calculateDiscoveryScore(signals);
+  const reasons: string[] = [];
+
+  if (signals.matchedProgramCompetencies > 0) {
+    reasons.push(
+      `Matches ${signals.matchedProgramCompetencies} program competencies out of ${signals.totalCompanyCompetencies || 0} detected.`
+    );
+  } else {
+    reasons.push("No direct overlap with current program competencies detected yet.");
+  }
+
+  if (signals.vacancyCount > 0) {
+    reasons.push(`Observed ${signals.vacancyCount} vacancy signal${signals.vacancyCount === 1 ? "" : "s"} for this company.`);
+  }
+
+  if (signals.hasWebsite) {
+    reasons.push("Company profile has a website, which improves reputation confidence.");
+  } else {
+    reasons.push("No website signal yet, so reputation stays conservative.");
+  }
+
+  if (signals.contactCount > 0) {
+    reasons.push(`Found ${signals.contactCount} contact candidate${signals.contactCount === 1 ? "" : "s"} for outreach.`);
+  } else {
+    reasons.push("No contact candidates found yet.");
+  }
+
+  if (hasEducationSignal(`${signals.industryName} ${signals.companyName}`)) {
+    reasons.push("Education-related language boosts readiness for partnership format.");
+  }
+
+  return {
+    total: score.total,
+    competencyFit: score.competencyFit,
+    reputation: score.reputation,
+    educationReadiness: score.educationReadiness,
+    signals: {
+      vacancyCount: signals.vacancyCount,
+      matchedProgramCompetencies: signals.matchedProgramCompetencies,
+      totalCompanyCompetencies: signals.totalCompanyCompetencies,
+      contactCount: signals.contactCount,
+      hasWebsite: signals.hasWebsite,
+      region: signals.region,
+      size: signals.size
+    },
+    reasons
+  };
 }

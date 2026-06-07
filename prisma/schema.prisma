@@ -106,6 +106,20 @@ enum IngestionRunStatus {
   failed
 }
 
+enum CommunicationPackageKind {
+  one_pager
+  faq
+}
+
+enum KnowledgeDocumentKind {
+  company_profile
+  vacancy
+  communication_package
+  project_brief
+  memory_event
+  reply
+}
+
 model User {
   id            String     @id @default(cuid())
   email         String     @unique
@@ -206,7 +220,10 @@ model Company {
   messages    Message[]
   replies     Reply[]
   agreements  PartnerAgreement[]
+  communicationPackages CommunicationPackage[]
   memoryEvents AgentMemoryEvent[]
+  knowledgeDocuments KnowledgeDocument[]
+  knowledgeChunks    KnowledgeChunk[]
 }
 
 model CompanyContact {
@@ -325,6 +342,22 @@ model PartnerAgreement {
   updatedAt DateTime        @updatedAt
   company   Company         @relation(fields: [companyId], references: [id])
   briefs    ProjectBrief[]
+  communicationPackages CommunicationPackage[]
+}
+
+model CommunicationPackage {
+  id                 String                   @id @default(cuid())
+  companyId          String
+  partnerAgreementId String?
+  kind               CommunicationPackageKind
+  title              String
+  summary            String
+  body               String
+  bullets            Json
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  company            Company                  @relation(fields: [companyId], references: [id])
+  partnerAgreement   PartnerAgreement?        @relation(fields: [partnerAgreementId], references: [id])
 }
 
 model ProjectBrief {
@@ -419,4 +452,38 @@ model IngestionRun {
   updatedAt        DateTime           @updatedAt
   industry         Industry           @relation(fields: [industryId], references: [id])
   sourceRef        IndustrySource     @relation(fields: [sourceId], references: [id])
+}
+
+model KnowledgeDocument {
+  id        String                @id @default(cuid())
+  companyId String?
+  kind      KnowledgeDocumentKind
+  title     String
+  sourceRef String
+  content   String
+  metadata  Json
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+  company   Company?              @relation(fields: [companyId], references: [id])
+  chunks    KnowledgeChunk[]
+
+  @@unique([kind, sourceRef])
+  @@index([companyId, kind])
+}
+
+model KnowledgeChunk {
+  id         String            @id @default(cuid())
+  documentId String
+  companyId  String?
+  chunkIndex Int
+  content    String
+  tokenCount Int
+  embedding  Json
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  document   KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  company    Company?          @relation(fields: [companyId], references: [id])
+
+  @@unique([documentId, chunkIndex])
+  @@index([companyId])
 }
