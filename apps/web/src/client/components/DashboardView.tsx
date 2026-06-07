@@ -83,10 +83,29 @@ export function DashboardView({ user, data, summary, onLogout, route, onNavigate
         </div>
       </div>
 
-      <SectionTabs currentRoute={route} onNavigate={onNavigate} />
-
       <div className="grid">
         <ActionPanel data={data} onRefresh={onRefresh} />
+      </div>
+
+      <div className="grid">
+        <div className="span-12">
+          <Panel>
+            <div className="panel-header">
+              <div>
+                <h3>Аналитика и детальные данные</h3>
+                <p>
+                  Когда основной шаг выполнен, смотри сюда за результатом: вакансии, shortlist, сообщения, agreements,
+                  brief, память и ML-оценка.
+                </p>
+              </div>
+              <span className="badge">Шаг за шагом</span>
+            </div>
+            <SectionTabs currentRoute={route} onNavigate={onNavigate} />
+          </Panel>
+        </div>
+      </div>
+
+      <div className="grid">
         {renderSection(route, data, summary)}
       </div>
     </>
