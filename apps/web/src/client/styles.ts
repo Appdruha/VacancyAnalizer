@@ -273,6 +273,37 @@ export const appStyles = `
     border-color: rgba(55, 140, 82, 0.18);
   }
 
+  .toast-stack {
+    position: fixed;
+    top: 22px;
+    right: 22px;
+    z-index: 40;
+    display: grid;
+    gap: 10px;
+    max-width: min(420px, calc(100vw - 24px));
+  }
+
+  .toast {
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 18px 38px rgba(27, 42, 54, 0.12);
+    line-height: 1.5;
+  }
+
+  .toast[data-tone="success"] {
+    color: #1a5d34;
+    background: rgba(240, 255, 245, 0.96);
+    border-color: rgba(55, 140, 82, 0.24);
+  }
+
+  .toast[data-tone="error"] {
+    color: #7d2f25;
+    background: rgba(255, 246, 244, 0.97);
+    border-color: rgba(181, 72, 56, 0.22);
+  }
+
   .workflow-progress {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -604,6 +635,31 @@ export const appStyles = `
     background: rgba(255, 255, 255, 0.86);
   }
 
+  .draft-preview {
+    display: grid;
+    gap: 10px;
+    min-width: 260px;
+  }
+
+  .draft-toggle {
+    width: fit-content;
+    padding: 8px 14px;
+  }
+
+  .draft-body {
+    margin: 0;
+    padding: 14px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.86);
+    color: var(--ink);
+    font-family: "Manrope", sans-serif;
+    font-size: 13px;
+  }
+
   table {
     width: 100%;
     border-collapse: collapse;
@@ -699,6 +755,13 @@ export const appStyles = `
 
     .headline {
       font-size: 34px;
+    }
+
+    .toast-stack {
+      left: 12px;
+      right: 12px;
+      top: 12px;
+      max-width: none;
     }
 
     .workflow-phase,

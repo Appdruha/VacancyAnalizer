@@ -85,6 +85,7 @@ export type DraftItem = {
   companyId?: string;
   contactId?: string | null;
   subject?: string;
+  body?: string;
   tone?: string;
 };
 
@@ -109,6 +110,7 @@ export type CommunicationPackageItem = {
   kind: string;
   title: string;
   summary: string;
+  body?: string;
   bullets: string[];
 };
 

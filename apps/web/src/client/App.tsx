@@ -1,4 +1,4 @@
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { loadDashboardData, signInLocal } from "./api.js";
 import { buildSummary } from "./dashboard/summary.js";
 import { DashboardView } from "./components/DashboardView.js";
@@ -9,6 +9,12 @@ import { useHashRoute } from "./hooks/useHashRoute.js";
 import { clearSession, getSavedUser, getToken, saveSession } from "./session.js";
 import type { DashboardData, DashboardSummary, SessionUser, WebRuntimeConfig } from "./types.js";
 
+type NotificationItem = {
+  id: number;
+  tone: "success" | "error";
+  message: string;
+};
+
 export function App() {
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(getSavedUser());
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -16,7 +22,9 @@ export function App() {
   const [statusTone, setStatusTone] = useState<"neutral" | "error">("neutral");
   const [localStatus, setLocalStatus] = useState("");
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [route, navigate] = useHashRoute();
+  const pollingRef = useRef(false);
   const [runtimeConfig] = useState<WebRuntimeConfig>(
     window.__EDAGENT_CONFIG__ ?? {
       apiBaseUrl: "/api",
@@ -33,6 +41,15 @@ export function App() {
     setSessionUser(nextData.me.user);
     setDashboardData(nextData);
     setLastUpdated(new Date().toISOString());
+  }, []);
+
+  const pushNotification = useCallback((notification: Omit<NotificationItem, "id">) => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setNotifications((current) => [...current, { id, ...notification }].slice(-4));
+
+    window.setTimeout(() => {
+      setNotifications((current) => current.filter((item) => item.id !== id));
+    }, 4500);
   }, []);
 
   const handleSessionResolved = useCallback((user: SessionUser, data: DashboardData) => {
@@ -73,6 +90,30 @@ export function App() {
     onStatusTone: handleStatusTone,
     onLocalStatusReset: handleLocalStatusReset
   });
+
+  useEffect(() => {
+    if (!sessionUser) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (pollingRef.current) {
+        return;
+      }
+
+      pollingRef.current = true;
+      void refreshDashboard()
+        .catch(() => undefined)
+        .finally(() => {
+          pollingRef.current = false;
+        });
+    }, 5000);
+
+    return () => {
+      window.clearInterval(intervalId);
+      pollingRef.current = false;
+    };
+  }, [refreshDashboard, sessionUser]);
 
   async function handleLocalLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -140,6 +181,16 @@ export function App() {
         {status}
       </div>
 
+      {notifications.length > 0 ? (
+        <div className="toast-stack" aria-live="polite">
+          {notifications.map((notification) => (
+            <div key={notification.id} className="toast" data-tone={notification.tone}>
+              {notification.message}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       {sessionUser && dashboardData && summary ? (
         <DashboardView
           user={sessionUser}
@@ -149,6 +200,7 @@ export function App() {
           route={route}
           onNavigate={navigate}
           onRefresh={refreshDashboard}
+          onNotify={pushNotification}
           lastUpdated={lastUpdated}
         />
       ) : (

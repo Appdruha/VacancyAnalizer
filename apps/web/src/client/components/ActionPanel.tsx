@@ -22,6 +22,7 @@ import { Panel } from "./Panel.js";
 type ActionPanelProps = {
   data: DashboardData;
   onRefresh: () => Promise<void>;
+  onNotify: (notification: { tone: "success" | "error"; message: string }) => void;
 };
 
 type ActionStatus = {
@@ -138,7 +139,7 @@ function buildWorkflowSteps(data: DashboardData): WorkflowStep[] {
   ];
 }
 
-export function ActionPanel({ data, onRefresh }: ActionPanelProps) {
+export function ActionPanel({ data, onRefresh, onNotify }: ActionPanelProps) {
   const [status, setStatus] = useState<ActionStatus>({
     tone: "neutral",
     message: "Иди по шагам слева направо: сначала источник, потом вакансии, компании, коммуникация и проектные артефакты."
@@ -150,6 +151,7 @@ export function ActionPanel({ data, onRefresh }: ActionPanelProps) {
       await action();
       await onRefresh();
       setStatus({ tone: "success", message: successMessage });
+      onNotify({ tone: "success", message: successMessage });
     } catch (error) {
       setStatus({
         tone: "error",

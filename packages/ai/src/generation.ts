@@ -5,7 +5,6 @@ import type {
   GeneratedCommunicationPackage,
   GeneratedProjectRole,
   ProjectBriefInput,
-  RetrievedContextSnippet,
   PromptTemplate
 } from "./types.js";
 
@@ -25,51 +24,37 @@ export function getPromptPurpose(template: PromptTemplate): string {
 function introByTone(tone: DraftTone): string {
   switch (tone) {
     case "formal":
-      return "Р—РґСЂР°РІСЃС‚РІСѓР№С‚Рµ";
+      return "Здравствуйте";
     case "neutral":
-      return "Р”РѕР±СЂС‹Р№ РґРµРЅСЊ";
+      return "Добрый день";
     case "friendly":
-      return "РџСЂРёРІРµС‚СЃС‚РІСѓРµРј";
+      return "Приветствуем";
   }
 }
 
 function partnershipAngle(input: CompanyProfileInput): string {
   if (input.topCompetencies.length === 0) {
-    return "РІРёРґРёРј РїРѕС‚РµРЅС†РёР°Р» РґР»СЏ СЃРѕРІРјРµСЃС‚РЅС‹С… РїСЂР°РєС‚РёРєРѕ-РѕСЂРёРµРЅС‚РёСЂРѕРІР°РЅРЅС‹С… РїСЂРѕРµРєС‚РѕРІ";
+    return "видим потенциал для совместных практико-ориентированных проектов";
   }
 
   const focus = input.topCompetencies.slice(0, 3).join(", ");
-  return `РІРёРґРёРј С…РѕСЂРѕС€РёР№ СЃС‚С‹Рє РїРѕ РєРѕРјРїРµС‚РµРЅС†РёСЏРј ${focus} Рё С„РѕСЂРјР°С‚Сѓ РїСЂР°РєС‚РёС‡РµСЃРєРёС… РїСЂРѕРµРєС‚РѕРІ`;
-}
-
-function renderRetrievedContext(snippets?: RetrievedContextSnippet[]): string | null {
-  if (!snippets || snippets.length === 0) {
-    return null;
-  }
-
-  return [
-    "RAG context:",
-    ...snippets.slice(0, 3).map((snippet, index) => {
-      const normalizedContent = snippet.content.replace(/\s+/g, " ").trim().slice(0, 180);
-      return `${index + 1}. [${snippet.kind}] ${snippet.title}: ${normalizedContent}`;
-    })
-  ].join("\n");
+  return `видим хороший стык по компетенциям ${focus} и формату практических проектов`;
 }
 
 export function generateCompanySummary(input: CompanyProfileInput): string {
   const lines = [
-    `${input.companyName} СЂР°Р±РѕС‚Р°РµС‚ РІ РґРѕРјРµРЅРµ ${input.industryName} Рё СЃРµР№С‡Р°СЃ РЅР°С…РѕРґРёС‚СЃСЏ РЅР° СЃС‚Р°РґРёРё ${input.stage}.`,
-    `РћСЃРЅРѕРІРЅРѕР№ СЂРµРіРёРѕРЅ РїСЂРёСЃСѓС‚СЃС‚РІРёСЏ: ${input.region}.`,
-    input.website ? `РЈ РєРѕРјРїР°РЅРёРё РµСЃС‚СЊ РїСѓР±Р»РёС‡РЅС‹Р№ СЃР°Р№С‚: ${input.website}.` : "РџСѓР±Р»РёС‡РЅС‹Р№ СЃР°Р№С‚ РїРѕРєР° РЅРµ Р·Р°С„РёРєСЃРёСЂРѕРІР°РЅ.",
+    `${input.companyName} работает в домене ${input.industryName} и сейчас находится на стадии ${input.stage}.`,
+    `Основной регион присутствия: ${input.region}.`,
+    input.website ? `У компании есть публичный сайт: ${input.website}.` : "Публичный сайт компании пока не зафиксирован.",
     input.score
-      ? `РўРµРєСѓС‰РёР№ score: ${input.score.total}/100, competency fit ${input.score.competencyFit}, reputation ${input.score.reputation}, education readiness ${input.score.educationReadiness}.`
-      : "РЎРєРѕСЂРёРЅРі РїРѕРєР° РЅРµ СЂР°СЃСЃС‡РёС‚Р°РЅ.",
+      ? `Текущий score: ${input.score.total}/100, competency fit ${input.score.competencyFit}, reputation ${input.score.reputation}, education readiness ${input.score.educationReadiness}.`
+      : "Оценка компании пока не рассчитана.",
     input.topCompetencies.length > 0
-      ? `РќР°РёР±РѕР»РµРµ Р·Р°РјРµС‚РЅС‹Рµ СЂС‹РЅРѕС‡РЅС‹Рµ РєРѕРјРїРµС‚РµРЅС†РёРё: ${input.topCompetencies.join(", ")}.`
-      : "Р’С‹СЂР°Р¶РµРЅРЅС‹Рµ СЂС‹РЅРѕС‡РЅС‹Рµ РєРѕРјРїРµС‚РµРЅС†РёРё РїРѕРєР° РЅРµ РІС‹РґРµР»РµРЅС‹.",
+      ? `Наиболее заметные рыночные компетенции: ${input.topCompetencies.join(", ")}.`
+      : "Выраженные рыночные компетенции пока не выделены.",
     input.contactName && input.contactTitle
-      ? `РљР»СЋС‡РµРІРѕР№ РєРѕРЅС‚Р°РєС‚ РґР»СЏ РєРѕРјРјСѓРЅРёРєР°С†РёРё: ${input.contactName}, ${input.contactTitle}.`
-      : "РљРѕРЅС‚Р°РєС‚ РґР»СЏ РєРѕРјРјСѓРЅРёРєР°С†РёРё РµС‰С‘ С‚СЂРµР±СѓРµС‚ СѓС‚РѕС‡РЅРµРЅРёСЏ."
+      ? `Ключевой контакт для коммуникации: ${input.contactName}, ${input.contactTitle}.`
+      : "Контакт для коммуникации ещё требует уточнения."
   ];
 
   return lines.join(" ");
@@ -81,22 +66,23 @@ export function generateOutreachDraft(input: CompanyProfileInput & { tone: Draft
 } {
   const greeting = input.contactName ? `${introByTone(input.tone)}, ${input.contactName}!` : `${introByTone(input.tone)}!`;
   const subjectByTone: Record<DraftTone, string> = {
-    formal: `РџСЂРµРґР»РѕР¶РµРЅРёРµ Рѕ РїР°СЂС‚РЅРµСЂСЃС‚РІРµ РґР»СЏ ${input.companyName}`,
-    neutral: `${input.companyName} x Project Learning`,
-    friendly: `РРґРµСЏ СЃРѕРІРјРµСЃС‚РЅРѕРіРѕ РїСЂРѕРµРєС‚Р° СЃ ${input.companyName}`
+    formal: `Предложение о партнёрстве для ${input.companyName}`,
+    neutral: `${input.companyName} × Project Learning`,
+    friendly: `Идея совместного проекта с ${input.companyName}`
   };
+
+  const topCompetencies = input.topCompetencies.slice(0, 3).join(", ") || "практические digital-компетенции";
 
   const body = [
     greeting,
     "",
-    `РњС‹ РёР·СѓС‡РёР»Рё РїСЂРѕС„РёР»СЊ ${input.companyName} Рё ${partnershipAngle(input)}.`,
-    `РћСЃРѕР±РµРЅРЅРѕ РёРЅС‚РµСЂРµСЃРЅРѕ РЅР°РїСЂР°РІР»РµРЅРёРµ ${input.industryName} Рё Р·Р°РїСЂРѕСЃ СЂС‹РЅРєР° РЅР° ${input.topCompetencies.slice(0, 3).join(", ") || "РїСЂР°РєС‚РёС‡РµСЃРєРёРµ digital-РєРѕРјРїРµС‚РµРЅС†РёРё"}.`,
-    "РњС‹ СЂР°Р·РІРёРІР°РµРј РїСЂРѕРµРєС‚РЅС‹Р№ С„РѕСЂРјР°С‚ РѕР±СѓС‡РµРЅРёСЏ Рё С…РѕС‚РёРј РїСЂРµРґР»РѕР¶РёС‚СЊ РїРёР»РѕС‚РЅС‹Р№ РєРµР№СЃ, РіРґРµ СЃС‚СѓРґРµРЅС‚С‹ СЃРјРѕРіСѓС‚ РїРѕСЂР°Р±РѕС‚Р°С‚СЊ РЅР°Рґ СЂРµР°Р»СЊРЅРѕР№ Р·Р°РґР°С‡РµР№ РєРѕРјРїР°РЅРёРё РїРѕРґ СЃРѕРІРјРµСЃС‚РЅС‹Рј РєСѓСЂР°С‚РѕСЂСЃС‚РІРѕРј.",
-    "Р•СЃР»Рё С„РѕСЂРјР°С‚ РІР°Рј РѕС‚РєР»РёРєР°РµС‚СЃСЏ, РјРѕР¶РµРј РїСЂРёСЃР»Р°С‚СЊ РєРѕСЂРѕС‚РєРёР№ one-pager СЃ РІРѕР·РјРѕР¶РЅРѕР№ РјРѕРґРµР»СЊСЋ РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёСЏ Рё РїСЂРёРјРµСЂР°РјРё РїСЂРѕРµРєС‚РЅС‹С… СЂРѕР»РµР№.",
-    renderRetrievedContext(input.retrievedContext),
+    `Мы изучили профиль ${input.companyName} и ${partnershipAngle(input)}.`,
+    `Особенно интересно направление ${input.industryName} и запрос рынка на ${topCompetencies}.`,
+    "Мы развиваем проектный формат обучения и хотим предложить пилотный кейс, где студенты смогут поработать над реальной задачей компании под совместным кураторством.",
+    "Если формат вам откликается, можем прислать короткий one-pager с возможной моделью взаимодействия и примером проектной роли.",
     "",
-    "РЎ СѓРІР°Р¶РµРЅРёРµРј,",
-    "РљРѕРјР°РЅРґР° Project Learning"
+    "С уважением,",
+    "Команда Project Learning"
   ]
     .filter((item): item is string => Boolean(item))
     .join("\n");
@@ -114,17 +100,16 @@ export function generateFollowUpDraft(input: CompanyProfileInput & { tone: Draft
   const greeting = input.contactName ? `${introByTone(input.tone)}, ${input.contactName}!` : `${introByTone(input.tone)}!`;
 
   return {
-    subject: `Follow-up РїРѕ РїР°СЂС‚РЅРµСЂСЃС‚РІСѓ СЃ ${input.companyName}`,
+    subject: `Follow-up по партнёрству с ${input.companyName}`,
     body: [
       greeting,
       "",
-      `Р’РѕР·РІСЂР°С‰Р°РµРјСЃСЏ Рє РЅР°С€РµР№ РёРґРµРµ СЃРѕРІРјРµСЃС‚РЅРѕРіРѕ РїСЂРѕРµРєС‚Р° СЃ ${input.companyName}.`,
-      `РњС‹ РїРѕ-РїСЂРµР¶РЅРµРјСѓ РІРёРґРёРј С…РѕСЂРѕС€РёР№ РїРѕС‚РµРЅС†РёР°Р» РІ СЃРІСЏР·РєРµ СЃ РЅР°РїСЂР°РІР»РµРЅРёСЏРјРё ${input.topCompetencies.slice(0, 3).join(", ") || input.industryName}.`,
-      "Р•СЃР»Рё С‚РµРјР° Р°РєС‚СѓР°Р»СЊРЅР°, РјРѕР¶РµРј РІ РѕС‚РІРµС‚ РїСЂРёСЃР»Р°С‚СЊ РєСЂР°С‚РєСѓСЋ СЃС‚СЂСѓРєС‚СѓСЂСѓ РїРёР»РѕС‚РЅРѕРіРѕ РїСЂРѕРµРєС‚Р° Рё РІР°СЂРёР°РЅС‚С‹ СѓС‡Р°СЃС‚РёСЏ СЃРѕ СЃС‚РѕСЂРѕРЅС‹ РєРѕРјРїР°РЅРёРё.",
-      renderRetrievedContext(input.retrievedContext),
+      `Возвращаемся к нашей идее совместного проекта с ${input.companyName}.`,
+      `Мы по-прежнему видим хороший потенциал в связке с направлениями ${input.topCompetencies.slice(0, 3).join(", ") || input.industryName}.`,
+      "Если тема актуальна, можем в ответ прислать краткую структуру пилотного проекта и варианты участия со стороны компании.",
       "",
-      "РЎ СѓРІР°Р¶РµРЅРёРµРј,",
-      "РљРѕРјР°РЅРґР° Project Learning"
+      "С уважением,",
+      "Команда Project Learning"
     ]
       .filter((item): item is string => Boolean(item))
       .join("\n")
@@ -139,7 +124,7 @@ function roleTitleForCompetency(name: string, index: number): string {
   if (normalized.includes("analytics") || normalized.includes("data")) {
     return "Data Analyst";
   }
-  if (normalized.includes("prompt") || normalized.includes("machine")) {
+  if (normalized.includes("prompt") || normalized.includes("machine") || normalized.includes("llm")) {
     return "AI Product Researcher";
   }
   return "Project Contributor";
@@ -153,8 +138,8 @@ function roleSummaryForCompetency(name: string, industryName: string): string {
   if (normalized.includes("analytics") || normalized.includes("data")) {
     return `Structure the metrics layer, analyse outcomes and present evidence-backed recommendations for the ${industryName} scenario.`;
   }
-  if (normalized.includes("prompt") || normalized.includes("machine")) {
-    return `Design and validate the AI-assisted workflow, including evaluation criteria and improvement hypotheses.`;
+  if (normalized.includes("prompt") || normalized.includes("machine") || normalized.includes("llm")) {
+    return "Design and validate the AI-assisted workflow, including evaluation criteria and improvement hypotheses.";
   }
   return `Own the workstream around ${name} and turn partner context into a concrete project deliverable.`;
 }
@@ -168,22 +153,21 @@ export function generateProjectBrief(input: ProjectBriefInput): {
   const communicationHighlights = input.communicationHighlights?.slice(0, 2) ?? [];
   const title =
     focus.length > 0
-      ? `${input.companyName} Industry Project in ${focus[0]}`
-      : `${input.companyName} Industry Project`;
+      ? `${input.companyName}: проект в области ${focus[0]}`
+      : `${input.companyName}: индустриальный проект`;
 
   const summary = [
-    `${input.companyName} is looking for a practice-oriented project in the ${input.industryName} domain.`,
+    `${input.companyName} рассматривается как партнёр для практико-ориентированного проекта в домене ${input.industryName}.`,
     focus.length > 0
-      ? `The project should focus on competencies such as ${focus.join(", ")}.`
-      : "The project should focus on applied digital product competencies.",
-    input.region ? `The partner context is tied to the ${input.region} market.` : null,
-    input.agreementStatus ? `The collaboration currently sits at the ${input.agreementStatus} agreement stage.` : null,
-    input.companyStage ? `The company pipeline stage is ${input.companyStage}.` : null,
-    input.scoreTotal !== undefined ? `Current company score is ${input.scoreTotal}/100.` : null,
-    input.website ? `Public company context is available through ${input.website}.` : null,
-    communicationHighlights.length > 0 ? `Existing communication materials highlight: ${communicationHighlights.join(" ")}` : null,
-    renderRetrievedContext(input.retrievedContext),
-    "Students should deliver a scoped prototype, analytics artefact, or product recommendation with a clear review checkpoint from the partner."
+      ? `Проект должен опираться на компетенции ${focus.join(", ")}.`
+      : "Проект должен опираться на прикладные цифровые компетенции.",
+    input.region ? `Контекст компании связан с регионом ${input.region}.` : null,
+    input.agreementStatus ? `Текущий статус взаимодействия: ${input.agreementStatus}.` : null,
+    input.companyStage ? `Этап компании в pipeline: ${input.companyStage}.` : null,
+    input.scoreTotal !== undefined ? `Текущий score компании: ${input.scoreTotal}/100.` : null,
+    input.website ? `Публичный контекст компании доступен через ${input.website}.` : null,
+    communicationHighlights.length > 0 ? `Из коммуникационных материалов важны следующие акценты: ${communicationHighlights.join(" ")}` : null,
+    "Ожидаемый результат — прикладной проект с понятным review checkpoint со стороны партнёра."
   ]
     .filter(Boolean)
     .join(" ");
@@ -207,50 +191,50 @@ export function generateCommunicationPackages(input: CommunicationPackageInput):
   faq: GeneratedCommunicationPackage;
 } {
   const focus = input.competencies.slice(0, 4);
-  const focusLine = focus.length > 0 ? focus.join(", ") : "РїСЂР°РєС‚РёС‡РµСЃРєРёРµ С†РёС„СЂРѕРІС‹Рµ РєРѕРјРїРµС‚РµРЅС†РёРё";
+  const focusLine = focus.length > 0 ? focus.join(", ") : "практические цифровые компетенции";
   const projectLine = input.projectTitle
-    ? `Р’ РєР°С‡РµСЃС‚РІРµ РїРµСЂРІРѕРіРѕ С€Р°РіР° РјРѕР¶РЅРѕ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РїСЂРѕРµРєС‚ "${input.projectTitle}".`
-    : "Р’ РєР°С‡РµСЃС‚РІРµ РїРµСЂРІРѕРіРѕ С€Р°РіР° РјРѕР¶РЅРѕ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РєРѕСЂРѕС‚РєРёР№ РїРёР»РѕС‚РЅС‹Р№ РїСЂРѕРµРєС‚ СЃ РїРѕРЅСЏС‚РЅС‹Рј review checkpoint.";
+    ? `В качестве первого шага можно использовать проект «${input.projectTitle}».`
+    : "В качестве первого шага можно использовать короткий пилотный проект с понятным review checkpoint.";
   const agreementLine =
     input.agreementStatus && input.agreementStatus !== "draft"
-      ? `РўРµРєСѓС‰РёР№ СЃС‚Р°С‚СѓСЃ РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёСЏ: ${input.agreementStatus}.`
-      : "РЎРµР№С‡Р°СЃ РїР°РєРµС‚ РїРѕРґС…РѕРґРёС‚ РґР»СЏ РїРµСЂРІРѕРіРѕ РѕР±СЃСѓР¶РґРµРЅРёСЏ Рё СѓС‚РѕС‡РЅРµРЅРёСЏ РѕР¶РёРґР°РЅРёР№.";
+      ? `Текущий статус взаимодействия: ${input.agreementStatus}.`
+      : "Сейчас пакет подходит для первого обсуждения и уточнения ожиданий.";
 
   const onePagerBullets = [
-    `Р¤РѕРєСѓСЃ СЃРѕС‚СЂСѓРґРЅРёС‡РµСЃС‚РІР°: ${input.industryName}.`,
-    `РљР»СЋС‡РµРІС‹Рµ РєРѕРјРїРµС‚РµРЅС†РёРё РґР»СЏ РїСЂРѕРµРєС‚Р°: ${focusLine}.`,
-    input.region ? `Р РµРіРёРѕРЅР°Р»СЊРЅС‹Р№ РєРѕРЅС‚РµРєСЃС‚: ${input.region}.` : "Р РµРіРёРѕРЅР°Р»СЊРЅС‹Р№ РєРѕРЅС‚РµРєСЃС‚ РјРѕР¶РЅРѕ СѓС‚РѕС‡РЅРёС‚СЊ РЅР° СЃРѕР·РІРѕРЅРµ.",
+    `Фокус сотрудничества: ${input.industryName}.`,
+    `Ключевые компетенции для проекта: ${focusLine}.`,
+    input.region ? `Региональный контекст: ${input.region}.` : "Региональный контекст можно уточнить на созвоне.",
     projectLine
   ];
 
   const faqBullets = [
-    "РљР°РєРѕР№ С„РѕСЂРјР°С‚ СѓС‡Р°СЃС‚РёСЏ РЅСѓР¶РµРЅ РѕС‚ РєРѕРјРїР°РЅРёРё?",
-    "РЎРєРѕР»СЊРєРѕ РІСЂРµРјРµРЅРё Р·Р°РЅРёРјР°РµС‚ РїРёР»РѕС‚РЅС‹Р№ РїСЂРѕРµРєС‚?",
-    "РљР°РєРёРµ СЂРµР·СѓР»СЊС‚Р°С‚С‹ РїРѕР»СѓС‡Р°РµС‚ РїР°СЂС‚РЅС‘СЂ РїРѕ РёС‚РѕРіР°Рј РїРёР»РѕС‚Р°?",
-    "РљР°Рє СѓСЃС‚СЂРѕРµРЅРѕ РєСѓСЂР°С‚РѕСЂСЃС‚РІРѕ Рё РїСЂРѕРІРµСЂРєР° СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ?"
+    "Какой формат участия нужен от компании?",
+    "Сколько времени занимает пилотный проект?",
+    "Какие результаты получает партнёр по итогам пилота?",
+    "Как устроены кураторство и проверка результатов?"
   ];
 
   return {
     onePager: {
-      title: `One-pager РґР»СЏ ${input.companyName}`,
-      summary: `РљСЂР°С‚РєРёР№ РїР°РєРµС‚ Рѕ РјРѕРґРµР»Рё РїР°СЂС‚РЅС‘СЂСЃС‚РІР° СЃ ${input.companyName} РІ РґРѕРјРµРЅРµ ${input.industryName}.`,
+      title: `One-pager для ${input.companyName}`,
+      summary: `Краткий пакет о модели партнёрства с ${input.companyName} в домене ${input.industryName}.`,
       body: [
-        `${input.companyName} РјРѕР¶РµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РїСЂРѕРµРєС‚РЅС‹Р№ С„РѕСЂРјР°С‚ РєР°Рє Р±РµР·РѕРїР°СЃРЅС‹Р№ СЃРїРѕСЃРѕР± РїСЂРѕРІРµСЂРёС‚СЊ РїСЂР°РєС‚РёС‡РµСЃРєСѓСЋ С†РµРЅРЅРѕСЃС‚СЊ СЃРѕС‚СЂСѓРґРЅРёС‡РµСЃС‚РІР° СЃ РѕР±СЂР°Р·РѕРІР°С‚РµР»СЊРЅРѕР№ РїСЂРѕРіСЂР°РјРјРѕР№.`,
-        `РњС‹ РїСЂРµРґР»Р°РіР°РµРј РєРѕРјРїР°РєС‚РЅС‹Р№ РїРёР»РѕС‚ РІРѕРєСЂСѓРі РЅР°РїСЂР°РІР»РµРЅРёР№ ${focusLine}, РіРґРµ СЃС‚СѓРґРµРЅС‚С‹ СЂР°Р±РѕС‚Р°СЋС‚ РЅР°Рґ СЂРµР°Р»СЊРЅРѕР№ Р·Р°РґР°С‡РµР№ РєРѕРјРїР°РЅРёРё РїРѕРґ СЃРѕРІРјРµСЃС‚РЅС‹Рј РєСѓСЂР°С‚РѕСЂСЃС‚РІРѕРј.`,
+        `${input.companyName} может использовать проектный формат как безопасный способ проверить практическую ценность сотрудничества с образовательной программой.`,
+        `Мы предлагаем компактный пилот вокруг направления ${focusLine}, где студенты работают над реальной задачей компании под совместным кураторством.`,
         agreementLine,
         projectLine,
-        "РќР° РІС‹С…РѕРґРµ РїР°СЂС‚РЅС‘СЂ РїРѕР»СѓС‡Р°РµС‚ РїСЂРѕР·СЂР°С‡РЅС‹Р№ РїСЂРѕС†РµСЃСЃ, РїСЂРѕРјРµР¶СѓС‚РѕС‡РЅС‹Рµ РєРѕРЅС‚СЂРѕР»СЊРЅС‹Рµ С‚РѕС‡РєРё Рё С„РёРЅР°Р»СЊРЅС‹Р№ РїСЂРёРєР»Р°РґРЅРѕР№ Р°СЂС‚РµС„Р°РєС‚."
+        "На выходе партнёр получает прозрачный процесс, промежуточные контрольные точки и финальный прикладной артефакт."
       ].join(" "),
       bullets: onePagerBullets
     },
     faq: {
-      title: `FAQ РїРѕ РїР°СЂС‚РЅС‘СЂСЃС‚РІСѓ СЃ ${input.companyName}`,
-      summary: "РќР°Р±РѕСЂ РєРѕСЂРѕС‚РєРёС… РѕС‚РІРµС‚РѕРІ РґР»СЏ РїРµСЂРІРѕРіРѕ РѕР±СЃСѓР¶РґРµРЅРёСЏ С„РѕСЂРјР°С‚Р° РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёСЏ.",
+      title: `FAQ по партнёрству с ${input.companyName}`,
+      summary: "Набор коротких ответов для первого обсуждения формата взаимодействия.",
       body: [
-        "1. РљРѕРјРїР°РЅРёСЏ РґР°С‘С‚ Р·Р°РґР°С‡Сѓ, РєРѕРЅС‚РµРєСЃС‚ Рё РѕРґРЅСѓ-РґРІРµ РєРѕРЅС‚СЂРѕР»СЊРЅС‹Рµ С‚РѕС‡РєРё.",
-        "2. РљРѕРјР°РЅРґР° РїСЂРѕРіСЂР°РјРјС‹ РїРѕРјРѕРіР°РµС‚ СѓРїР°РєРѕРІР°С‚СЊ Р·Р°РґР°С‡Сѓ РІ СЃС‚СѓРґРµРЅС‡РµСЃРєРёР№ РїСЂРѕРµРєС‚ Рё СЃРѕРїСЂРѕРІРѕР¶РґР°РµС‚ РІС‹РїРѕР»РЅРµРЅРёРµ.",
-        "3. РџРёР»РѕС‚ РѕР±С‹С‡РЅРѕ СЃС‚Р°СЂС‚СѓРµС‚ СЃ РЅРµР±РѕР»СЊС€РѕР№, С‡С‘С‚РєРѕ РѕРіСЂР°РЅРёС‡РµРЅРЅРѕР№ Р·Р°РґР°С‡Рё, С‡С‚РѕР±С‹ Р±С‹СЃС‚СЂРѕ РїСЂРѕРІРµСЂРёС‚СЊ РїРѕР»СЊР·Сѓ С„РѕСЂРјР°С‚Р°.",
-        "4. РџСЂРё СѓСЃРїРµС€РЅРѕРј РїРёР»РѕС‚Рµ РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёРµ РјРѕР¶РЅРѕ СЂР°СЃС€РёСЂРёС‚СЊ РґРѕ СЂРµРіСѓР»СЏСЂРЅРѕРіРѕ РєР°С‚Р°Р»РѕРіР° РїСЂРѕРµРєС‚РѕРІ."
+        "1. Компания даёт задачу, контекст и одну-две контрольные точки.",
+        "2. Команда программы упаковывает задачу в студенческий проект и сопровождает выполнение.",
+        "3. Пилот обычно стартует с небольшой, чётко ограниченной задачи, чтобы быстро проверить пользу формата.",
+        "4. При успешном пилоте взаимодействие можно расширить до регулярного каталога проектов."
       ].join(" "),
       bullets: faqBullets
     }

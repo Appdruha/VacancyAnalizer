@@ -10,6 +10,9 @@ type OutreachSectionProps = {
 export function OutreachSection({ data }: OutreachSectionProps) {
   const [messageStatus, setMessageStatus] = useState("all");
   const [replyQuery, setReplyQuery] = useState("");
+  const [openDraftId, setOpenDraftId] = useState<string | null>(null);
+  const [openPackageId, setOpenPackageId] = useState<string | null>(null);
+
   const filteredMessages = data.messages.items.filter((message) => messageStatus === "all" || message.status === messageStatus);
   const filteredReplies = data.replies.items.filter((reply) => {
     const needle = replyQuery.trim().toLowerCase();
@@ -35,6 +38,31 @@ export function OutreachSection({ data }: OutreachSectionProps) {
           />
         </div>
       </div>
+
+      <DataTable
+        className="span-12"
+        title="Drafts сообщений"
+        subtitle="Черновики писем, которые система подготовила перед подтверждением и отправкой."
+        headers={["Тема", "Тон", "Статус", "Текст"]}
+        rows={data.drafts.items.slice(0, 8).map((draft) => {
+          const isOpen = openDraftId === draft.id;
+          return [
+            draft.subject ?? "Без темы",
+            draft.tone ?? "-",
+            <StatusBadge value={draft.approved ? "approved" : "draft"} />,
+            <div className="draft-preview">
+              <button
+                type="button"
+                className="ghost-button draft-toggle"
+                onClick={() => setOpenDraftId(isOpen ? null : draft.id)}
+              >
+                {isOpen ? "Скрыть текст" : "Показать текст"}
+              </button>
+              {isOpen ? <pre className="draft-body">{draft.body ?? "Текст письма пока отсутствует."}</pre> : null}
+            </div>
+          ];
+        })}
+      />
 
       <DataTable
         className="span-6"
@@ -66,13 +94,25 @@ export function OutreachSection({ data }: OutreachSectionProps) {
         className="span-12"
         title="Коммуникационные пакеты"
         subtitle="One-pager и FAQ-материалы, подготовленные для общения с партнёром."
-        headers={["Тип", "Название", "Кратко", "Пункты"]}
-        rows={data.communicationPackages.items.slice(0, 8).map((item) => [
-          item.kind,
-          item.title,
-          item.summary,
-          String(item.bullets.length)
-        ])}
+        headers={["Тип", "Название", "Кратко", "Текст"]}
+        rows={data.communicationPackages.items.slice(0, 8).map((item) => {
+          const isOpen = openPackageId === item.id;
+          return [
+            item.kind,
+            item.title,
+            item.summary,
+            <div className="draft-preview">
+              <button
+                type="button"
+                className="ghost-button draft-toggle"
+                onClick={() => setOpenPackageId(isOpen ? null : item.id)}
+              >
+                {isOpen ? "Скрыть текст" : "Показать текст"}
+              </button>
+              {isOpen ? <pre className="draft-body">{item.body ?? "Полный текст материала пока отсутствует."}</pre> : null}
+            </div>
+          ];
+        })}
       />
     </>
   );

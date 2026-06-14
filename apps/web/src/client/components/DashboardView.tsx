@@ -17,6 +17,7 @@ type DashboardViewProps = {
   route: DashboardRoute;
   onNavigate: (route: DashboardRoute) => void;
   onRefresh: () => Promise<void>;
+  onNotify: (notification: { tone: "success" | "error"; message: string }) => void;
   lastUpdated: string | null;
 };
 
@@ -36,7 +37,7 @@ function renderSection(route: DashboardRoute, data: DashboardData, summary: Dash
   }
 }
 
-export function DashboardView({ user, data, summary, onLogout, route, onNavigate, onRefresh, lastUpdated }: DashboardViewProps) {
+export function DashboardView({ user, data, summary, onLogout, route, onNavigate, onRefresh, onNotify, lastUpdated }: DashboardViewProps) {
   return (
     <>
       <div className="grid">
@@ -84,7 +85,7 @@ export function DashboardView({ user, data, summary, onLogout, route, onNavigate
       </div>
 
       <div className="grid">
-        <ActionPanel data={data} onRefresh={onRefresh} />
+        <ActionPanel data={data} onRefresh={onRefresh} onNotify={onNotify} />
       </div>
 
       <div className="grid">
